@@ -12,6 +12,7 @@ import backtrader as bt
 # Create a Stratey
 class TestStrategy(bt.Strategy):
     params = (
+        ('exitbars', 4),
         ('maperiod', 15),
     )
 
@@ -93,17 +94,22 @@ class TestStrategy(bt.Strategy):
         if not self.position:
 
             # Not yet ... we MIGHT BUY if ...
-            if self.dataclose[0] > self.sma[0]:
+            if self.dataclose[0] < self.dataclose[-1]:
+                    # current close less than previous close
 
-                # BUY, BUY, BUY!!! (with all possible default parameters)
-                self.log('BUY CREATE, %.2f' % self.dataclose[0])
+                    if self.dataclose[-1] < self.dataclose[-2]:
+                        # previous close less than the previous close
 
-                # Keep track of the created order to avoid a 2nd order
-                self.order = self.buy()
+                        # BUY, BUY, BUY!!! (with default parameters)
+                        self.log('BUY CREATE, %.2f' % self.dataclose[0])
+
+                        # Keep track of the created order to avoid a 2nd order
+                        self.order = self.buy()
 
         else:
 
-            if self.dataclose[0] < self.sma[0]:
+            # Already in the market ... we might sell
+            if len(self) >= (self.bar_executed + self.params.exitbars):
                 # SELL, SELL, SELL!!! (with all possible default parameters)
                 self.log('SELL CREATE, %.2f' % self.dataclose[0])
 
@@ -121,7 +127,7 @@ if __name__ == '__main__':
     # Datas are in a subfolder of the samples. Need to find where the script is
     # because it could have been called from anywhere
     modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, '/data/orcl-1995-2014.txt')
+    datapath = os.path.join(modpath, 'orcl-1995-2014.txt')
 
     # Create a Data Feed
     data = bt.feeds.YahooFinanceCSVData(
